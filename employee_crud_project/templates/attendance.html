@@ -1,130 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance Scanner</title>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        
-        .container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 100%;
-        }
-        
-        h2 {
-            color: #2d3748;
-            margin-bottom: 30px;
-            font-size: 24px;
-            font-weight: 600;
-        }
-        
-        #reader {
-            margin: 0 auto 20px;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-        
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 10px;
-            font-weight: 500;
-            min-height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-        
-        .success {
-            background: #f0fff4;
-            color: #38a169;
-            border: 2px solid #68d391;
-        }
-        
-        .error {
-            background: #fff5f5;
-            color: #e53e3e;
-            border: 2px solid #fc8181;
-        }
-        
-        .scanning {
-            background: #ebf8ff;
-            color: #3182ce;
-            border: 2px solid #90cdf4;
-        }
-        
-        @media (max-width: 480px) {
-            .container {
-                padding: 30px 20px;
-            }
-            
-            h2 {
-                font-size: 20px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Attendance Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    h2 {
+      color: #2d3748;
+      font-size: 22px;
+      margin-bottom: 20px;
+      font-weight: 700;
+    }
+
+    #reader, #camera-container {
+      margin-bottom: 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 10px 15px;
+      font-weight: 600;
+      border-radius: 10px;
+      min-height: 40px;
+    }
+
+    .success { background: #f0fff4; color: #38a169; border: 2px solid #68d391; }
+    .error { background: #fff5f5; color: #e53e3e; border: 2px solid #fc8181; }
+    .scanning { background: #ebf8ff; color: #3182ce; border: 2px solid #90cdf4; }
+
+    input, button {
+      margin: 10px 5px;
+      padding: 10px;
+      width: 90%;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    button {
+      background-color: #667eea;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #5a67d8;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 10px;
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 25px 15px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h2>📱 Scan QR to Mark Attendance</h2>
-        <div id="reader"></div>
-        <div id="result" class="scanning">Ready to scan...</div>
-    </div>
-    
-    <script>
-        function onScanSuccess(decodedText, decodedResult) {
-            const resultDiv = document.getElementById("result");
-            resultDiv.className = "scanning";
-            resultDiv.innerText = "Processing...";
-            
-            fetch("/mark_attendance", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ employee_id: decodedText })
-            })
-            .then(response => response.text())
-            .then(data => {
-                resultDiv.className = "success";
-                resultDiv.innerText = data;
-            })
-            .catch(error => {
-                resultDiv.className = "error";
-                resultDiv.innerText = "Error marking attendance. Please try again.";
-            });
-        }
-        
-        let html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { 
-                fps: 10, 
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
-            }
-        );
-        html5QrcodeScanner.render(onScanSuccess);
-    </script>
+  <div class="container">
+    <h2>📷 Attendance by QR or Webcam</h2>
+
+    <!-- QR Code Scanner -->
+    <div id="reader"></div>
+
+    <!-- OR Capture with Camera -->
+    <form id="photoForm">
+      <input type="text" id="emp_id" name="employee_id" placeholder="Enter Employee ID" required />
+      <div id="camera-container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+      </div>
+      <button type="button" onclick="takeSnapshot()">📸 Capture & Mark Attendance</button>
+    </form>
+
+    <!-- Message -->
+    <div id="result" class="scanning">Ready to scan or capture...</div>
+  </div>
+
+  <!-- QR Code Logic -->
+  <script>
+    function onScanSuccess(decodedText) {
+      const resultDiv = document.getElementById("result");
+      resultDiv.className = "scanning";
+      resultDiv.innerText = "Processing QR...";
+
+      fetch("/mark_attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee_id: decodedText })
+      })
+      .then(res => res.text())
+      .then(data => {
+        resultDiv.className = "success";
+        resultDiv.innerText = data;
+      })
+      .catch(() => {
+        resultDiv.className = "error";
+        resultDiv.innerText = "QR Attendance Failed!";
+      });
+    }
+
+    new Html5QrcodeScanner("reader", {
+      fps: 10,
+      qrbox: { width: 250, height: 250 }
+    }).render(onScanSuccess);
+  </script>
+
+  <!-- Webcam Capture Logic -->
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
+
+    // Start webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => { console.error("Camera error:", err); });
+
+    function takeSnapshot() {
+      const empId = document.getElementById("emp_id").value.trim();
+      if (!empId) {
+        alert("Please enter your Employee ID");
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const photoData = canvas.toDataURL("image/png");
+
+      const formData = new FormData();
+      formData.append("employee_id", empId);
+      formData.append("photo", photoData);
+
+      const resultDiv = document.getElementById("result");
+      resultDiv.className = "scanning";
+      resultDiv.innerText = "Uploading photo...";
+
+      fetch("/mark_attendance_photo", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.text())
+      .then(data => {
+        resultDiv.className = "success";
+        resultDiv.innerText = data;
+      })
+      .catch(() => {
+        resultDiv.className = "error";
+        resultDiv.innerText = "Photo Attendance Failed!";
+      });
+    }
+  </script>
 </body>
 </html>
